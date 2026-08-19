@@ -8,6 +8,7 @@ import type {
 } from "@/types/venue";
 
 export interface VenueFilters {
+  search?: string;
   city?: VenueCity[];
   category?: VenueCategory[];
   soundSystem?: SoundSystemStatus[];
@@ -16,16 +17,25 @@ export interface VenueFilters {
   publishedPricingOnly?: boolean;
 }
 
+/** Escapes characters that are meaningful in PostgREST's `.or()` filter syntax. */
+function sanitizeForOrFilter(term: string): string {
+  return term.replace(/[,()]/g, " ").trim();
+}
+
 export async function getVenues(filters: VenueFilters): Promise<Venue[]> {
   const supabase = await createClient();
 
   let query = supabase
     .from("venues")
     .select(
-      "id, name, slug, category, city, address, capacity_min, capacity_max, sound_system, rental_fee_amount, rental_fee_unit, photos, reservation_url, contact_email, contact_form_url, phone, last_verified_at"
+      "id, name, slug, category, city, address, latitude, longitude, capacity_min, capacity_max, sound_system, rental_fee_amount, rental_fee_unit, photos, reservation_url, contact_email, contact_form_url, phone, last_verified_at"
     )
     .order("name");
 
+  if (filters.search) {
+    const term = sanitizeForOrFilter(filters.search);
+    if (term) query = query.or(`name.ilike.%${term}%,address.ilike.%${term}%`);
+  }
   if (filters.city?.length) query = query.in("city", filters.city);
   if (filters.category?.length) query = query.in("category", filters.category);
   if (filters.soundSystem?.length) query = query.in("sound_system", filters.soundSystem);

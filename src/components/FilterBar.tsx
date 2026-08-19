@@ -43,7 +43,13 @@ function CheckboxGroup({
   );
 }
 
-export function FilterBar({ filters }: { filters: VenueFilters }) {
+export function FilterBar({
+  filters,
+  view,
+}: {
+  filters: VenueFilters;
+  view?: "list" | "map";
+}) {
   const categoryOptions = Object.entries(VENUE_CATEGORY_LABELS).map(([value, label]) => ({
     value,
     label,
@@ -55,6 +61,19 @@ export function FilterBar({ filters }: { filters: VenueFilters }) {
 
   return (
     <form method="get" action="/" className="flex flex-col gap-4 text-foreground">
+      {view && <input type="hidden" name="view" value={view} />}
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-xs uppercase tracking-wide text-muted">Search</span>
+        <input
+          type="search"
+          name="q"
+          defaultValue={filters.search ?? ""}
+          placeholder="Venue name or city"
+          className="rounded border border-line bg-surface px-3 py-2"
+        />
+      </label>
+
       <CheckboxGroup
         name="category"
         legend="Category"
@@ -127,7 +146,7 @@ export function FilterBar({ filters }: { filters: VenueFilters }) {
           Apply filters
         </button>
         <Link
-          href="/"
+          href={view ? `/?view=${view}` : "/"}
           className="text-sm text-muted underline underline-offset-2 self-center"
         >
           Clear

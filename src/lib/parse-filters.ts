@@ -13,7 +13,10 @@ export function parseFilters(searchParams: SearchParams): VenueFilters {
   const minCapacity = Number(searchParams.min_capacity);
   const maxFee = Number(searchParams.max_fee);
 
+  const q = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
+
   return {
+    search: q.length > 0 ? q : undefined,
     city: splitParam(searchParams.city) as VenueCity[],
     category: splitParam(searchParams.category) as VenueCategory[],
     soundSystem: splitParam(searchParams.sound) as SoundSystemStatus[],
