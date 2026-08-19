@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Map, Source, Layer, Popup, type MapRef, type MapMouseEvent } from "react-map-gl/mapbox";
+import mapboxgl from "mapbox-gl";
 import type { FeatureCollection, Point } from "geojson";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { VENUE_CATEGORY_LABELS, type Venue } from "@/types/venue";
@@ -119,6 +120,7 @@ export function VenueMap({ venues }: { venues: MappableVenue[] }) {
       <div className="rounded-lg overflow-hidden border border-line h-[70vh]">
         <Map
           ref={mapRef}
+          mapLib={mapboxgl}
           mapboxAccessToken={token}
           initialViewState={SEATTLE_VIEW}
           mapStyle="mapbox://styles/mapbox/light-v11"
