@@ -41,6 +41,7 @@ const SEARCH_TERMS = [
   "theatre auditorium",
   "banquet hall event venue rental",
   "community center hall rental",
+  "museum cultural center event rental",
 ];
 
 const SEARCH_RADIUS_METERS = 12_000;
