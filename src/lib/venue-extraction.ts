@@ -62,6 +62,8 @@ const EXTRACTION_SYSTEM_PROMPT = `You extract structured venue-rental informatio
 
 Only report what the page text actually states. If a field isn't mentioned, set it to null — never guess or estimate.
 
+You may receive text from more than one page of the same website, each preceded by a "--- Page: <url> ---" marker. Combine information across all of them.
+
 Return strictly the JSON object described by the schema, with these exact keys: name, category_guess, city_guess, address, capacity_min, capacity_max, sound_system, sound_system_notes, rental_fee_amount, rental_fee_unit, rental_fee_notes, production_notes, amenities, reservation_url, contact_email, contact_form_url, phone, description.
 
 category_guess must be one of: school_pac, theatre, community_hall, church_hall, event_center, outdoor_amphitheater, university_auditorium, cultural_center — or null if unclear.
@@ -80,7 +82,27 @@ function stripCodeFence(text: string): string {
   return fenceMatch ? fenceMatch[1] : text;
 }
 
-async function fetchPageText(url: string): Promise<string> {
+const RENTAL_LINK_KEYWORDS = [
+  "rent",
+  "rental",
+  "book",
+  "booking",
+  "reserve",
+  "reservation",
+  "event",
+  "wedding",
+  "facility",
+  "hire",
+  "meeting space",
+  "host your",
+  "plan your event",
+  "private event",
+];
+
+const MAX_SUBPAGES = 2;
+const MAX_CHARS_PER_PAGE = 9_000;
+
+async function fetchHtml(url: string): Promise<string> {
   const response = await fetch(url, {
     headers: { "User-Agent": "SeattleVenueAtlas-Import/1.0" },
     signal: AbortSignal.timeout(15_000),
@@ -88,18 +110,77 @@ async function fetchPageText(url: string): Promise<string> {
   if (!response.ok) {
     throw new Error(`Fetching the page failed (HTTP ${response.status}).`);
   }
-  const html = await response.text();
+  return response.text();
+}
 
-  const $ = cheerio.load(html);
+function extractBodyText($: ReturnType<typeof cheerio.load>, maxChars: number): string {
   $("script, style, noscript, svg, nav, footer").remove();
-  const text = $("body").text().replace(/\s+/g, " ").trim();
+  return $("body").text().replace(/\s+/g, " ").trim().slice(0, maxChars);
+}
 
-  if (!text) throw new Error("The page had no readable text content.");
-  return text.slice(0, 20_000);
+/**
+ * Finds same-origin links likely to lead to a rentals/events/facility-hire
+ * page — these usually carry the capacity/fee/sound-system specifics that
+ * never show up on a homepage. Searches the full document (nav/footer
+ * included), since that's exactly where these links tend to live.
+ */
+function findCandidateSubpageUrls(
+  $: ReturnType<typeof cheerio.load>,
+  baseUrl: string,
+  limit: number
+): string[] {
+  const base = new URL(baseUrl);
+  const seen = new Set<string>([base.toString()]);
+  const candidates: { url: string; score: number }[] = [];
+
+  $("a[href]").each((_, el) => {
+    const href = $(el).attr("href");
+    if (!href || /^(mailto:|tel:|javascript:|#)/i.test(href)) return;
+
+    let resolved: URL;
+    try {
+      resolved = new URL(href, base);
+    } catch {
+      return;
+    }
+    if (resolved.hostname !== base.hostname) return;
+
+    const absolute = resolved.toString();
+    if (seen.has(absolute)) return;
+
+    const haystack = `${$(el).text()} ${href}`.toLowerCase();
+    const score = RENTAL_LINK_KEYWORDS.filter((kw) => haystack.includes(kw)).length;
+    if (score > 0) {
+      seen.add(absolute);
+      candidates.push({ url: absolute, score });
+    }
+  });
+
+  return candidates
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((c) => c.url);
 }
 
 export async function extractVenueFromUrl(url: string): Promise<VenueExtraction> {
-  const pageText = await fetchPageText(url);
+  const mainHtml = await fetchHtml(url);
+  const main$ = cheerio.load(mainHtml);
+  const subpageUrls = findCandidateSubpageUrls(main$, url, MAX_SUBPAGES);
+  const mainText = extractBodyText(main$, MAX_CHARS_PER_PAGE);
+
+  const pages = [{ url, text: mainText }];
+  for (const subUrl of subpageUrls) {
+    try {
+      const subHtml = await fetchHtml(subUrl);
+      const subText = extractBodyText(cheerio.load(subHtml), MAX_CHARS_PER_PAGE);
+      if (subText) pages.push({ url: subUrl, text: subText });
+    } catch {
+      // Best-effort — a subpage that fails to fetch just gets skipped.
+    }
+  }
+
+  const combinedText = pages.map((p) => `--- Page: ${p.url} ---\n${p.text}`).join("\n\n");
+  if (!pages.some((p) => p.text)) throw new Error("The page had no readable text content.");
 
   const client = createOpenRouterClient();
   const model = process.env.OPENROUTER_MODEL || "anthropic/claude-haiku-4.5";
@@ -109,7 +190,7 @@ export async function extractVenueFromUrl(url: string): Promise<VenueExtraction>
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
-      { role: "user", content: pageText },
+      { role: "user", content: combinedText },
     ],
   });
 
