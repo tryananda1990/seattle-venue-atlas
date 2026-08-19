@@ -49,7 +49,6 @@ const SEARCH_TERMS = [
   "outdoor amphitheater park stage venue",
   // Real venue types nothing above reliably surfaces:
   "VFW Elks lodge fraternal hall rental",
-  "winery brewery barn farm event venue",
 ];
 
 const SEARCH_RADIUS_METERS = 12_000;
