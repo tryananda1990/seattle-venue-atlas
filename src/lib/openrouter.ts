@@ -1,5 +1,8 @@
-import "server-only";
 import OpenAI from "openai";
+
+// No `import "server-only"` here: this module is also imported by
+// scripts/discover.ts, run via plain Node (tsx), where that marker throws
+// unconditionally. Never import this file from a Client Component.
 
 /**
  * OpenRouter is OpenAI-API-compatible, so the official `openai` SDK works

@@ -1,7 +1,10 @@
-import "server-only";
 import * as cheerio from "cheerio";
 import { z } from "zod";
 import { createOpenRouterClient } from "@/lib/openrouter";
+
+// No `import "server-only"` here: this module is also imported by
+// scripts/discover.ts, run via plain Node (tsx), where that marker throws
+// unconditionally. Never import this file from a Client Component.
 
 export const VenueExtractionSchema = z.object({
   name: z.string().nullable(),
