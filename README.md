@@ -33,7 +33,7 @@ See `.env.local.example` for the full list. In short:
 
 | Variable | Where to get it |
 | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Supabase project → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` | Supabase project → Settings → API Keys (new publishable/secret key format, not the legacy anon/service_role keys) |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | account.mapbox.com/access-tokens |
 | `OPENROUTER_API_KEY` | openrouter.ai/keys |
 | `GOOGLE_PLACES_API_KEY` | Google Cloud Console (Places API enabled) |
