@@ -68,6 +68,15 @@ rental_fee_unit must be one of: hour, day, event, unknown.
 production_notes should cover load-in/loading dock access, power/electrical, and backline availability, when the page mentions any of these — these matter to bands and concert promoters deciding whether the venue can host a show.
 amenities is a short array of tags like "Parking", "Stage", "Green room", "Loading dock", "Kitchen access", "ADA accessible", "Wi-Fi" — only include ones the text actually supports.`;
 
+/**
+ * Claude models sometimes wrap JSON-mode output in a markdown code fence even
+ * when asked for raw JSON — strip it before parsing.
+ */
+function stripCodeFence(text: string): string {
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  return fenceMatch ? fenceMatch[1] : text;
+}
+
 async function fetchPageText(url: string): Promise<string> {
   const response = await fetch(url, {
     headers: { "User-Agent": "SeattleVenueAtlas-Import/1.0" },
@@ -90,7 +99,7 @@ export async function extractVenueFromUrl(url: string): Promise<VenueExtraction>
   const pageText = await fetchPageText(url);
 
   const client = createOpenRouterClient();
-  const model = process.env.OPENROUTER_MODEL ?? "anthropic/claude-haiku-4.5";
+  const model = process.env.OPENROUTER_MODEL || "anthropic/claude-haiku-4.5";
 
   const completion = await client.chat.completions.create({
     model,
@@ -106,7 +115,7 @@ export async function extractVenueFromUrl(url: string): Promise<VenueExtraction>
 
   let parsedJson: unknown;
   try {
-    parsedJson = JSON.parse(raw);
+    parsedJson = JSON.parse(stripCodeFence(raw));
   } catch {
     throw new Error("The model didn't return valid JSON.");
   }
