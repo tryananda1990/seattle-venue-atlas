@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Seattle Venue Atlas
 
-## Getting Started
+A searchable directory and map of rentable auditoriums, theatres, and halls across the Greater Seattle area. See the product requirements doc for full scope.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Frontend/backend:** Next.js 16 (App Router, TypeScript, Tailwind)
+- **Database:** Supabase (Postgres + PostGIS), via `@supabase/supabase-js` / `@supabase/ssr`
+- **Map:** Mapbox GL JS (`mapbox-gl`, `react-map-gl`)
+- **AI:** OpenRouter, via the OpenAI SDK pointed at OpenRouter's API
+- **Hosting:** Vercel
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Copy the env template and fill in credentials (see below):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   cp .env.local.example .env.local
+   ```
 
-## Learn More
+2. Install dependencies and run the dev server:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Apply the database schema in `supabase/migrations/0001_init.sql` to your Supabase project (via the SQL editor, or the Supabase CLI once linked).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Environment variables
 
-## Deploy on Vercel
+See `.env.local.example` for the full list. In short:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Variable | Where to get it |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Supabase project → Settings → API |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | account.mapbox.com/access-tokens |
+| `OPENROUTER_API_KEY` | openrouter.ai/keys |
+| `GOOGLE_PLACES_API_KEY` | Google Cloud Console (Places API enabled) |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+Deploys to Vercel from this repo. Set the same environment variables in the Vercel project settings (Production + Preview).
