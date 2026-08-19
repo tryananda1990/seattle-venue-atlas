@@ -122,6 +122,7 @@ export function VenueMap({ venues }: { venues: MappableVenue[] }) {
           mapboxAccessToken={token}
           initialViewState={SEATTLE_VIEW}
           mapStyle="mapbox://styles/mapbox/light-v11"
+          style={{ width: "100%", height: "100%" }}
           interactiveLayerIds={["clusters", "unclustered-point"]}
           onClick={handleClick}
         >
