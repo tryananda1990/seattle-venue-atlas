@@ -42,6 +42,14 @@ const SEARCH_TERMS = [
   "banquet hall event venue rental",
   "community center hall rental",
   "museum cultural center event rental",
+  // Added after the first two sweeps showed these categories were thin:
+  "school auditorium performing arts rental",
+  "church fellowship hall event space rental",
+  "university lecture hall auditorium rental",
+  "outdoor amphitheater park stage venue",
+  // Real venue types nothing above reliably surfaces:
+  "VFW Elks lodge fraternal hall rental",
+  "winery brewery barn farm event venue",
 ];
 
 const SEARCH_RADIUS_METERS = 12_000;
