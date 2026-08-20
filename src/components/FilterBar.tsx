@@ -2,11 +2,13 @@ import Link from "next/link";
 import { VENUE_CATEGORY_LABELS, VENUE_CITY_LABELS } from "@/types/venue";
 import type { VenueFilters } from "@/lib/venues";
 
+// "unknown" isn't offered as a checkbox — venues with an unconfirmed sound
+// system always pass this filter regardless of selection (see getVenues),
+// so a checkbox for it would look selectable without ever changing results.
 const SOUND_SYSTEM_OPTIONS: { value: string; label: string }[] = [
   { value: "included", label: "Included" },
   { value: "extra_fee", label: "Available for extra fee" },
   { value: "none", label: "Not available" },
-  { value: "unknown", label: "Unknown" },
 ];
 
 function CheckboxGroup({

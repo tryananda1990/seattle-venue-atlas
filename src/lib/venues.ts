@@ -38,7 +38,13 @@ export async function getVenues(filters: VenueFilters): Promise<Venue[]> {
   }
   if (filters.city?.length) query = query.in("city", filters.city);
   if (filters.category?.length) query = query.in("category", filters.category);
-  if (filters.soundSystem?.length) query = query.in("sound_system", filters.soundSystem);
+  if (filters.soundSystem?.length) {
+    // A venue with an unconfirmed sound system isn't "doesn't match" — it's
+    // "we don't know." Same treatment as capacity/fee: never let missing
+    // data silently exclude a venue that might actually fit.
+    const values = Array.from(new Set([...filters.soundSystem, "unknown"]));
+    query = query.in("sound_system", values);
+  }
   if (filters.minCapacity) {
     query = query.or(
       `capacity_max.gte.${filters.minCapacity},capacity_max.is.null`
