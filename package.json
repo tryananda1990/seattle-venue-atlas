@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "discover": "tsx scripts/discover.ts",
+    "enrich-no-website": "tsx scripts/enrich-no-website.ts",
     "create-admin": "tsx scripts/create-admin-user.ts",
     "reset-admin-password": "tsx scripts/reset-admin-password.ts"
   },
