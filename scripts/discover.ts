@@ -13,7 +13,7 @@
  */
 import { loadEnvConfig } from "@next/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { extractVenueFromUrl } from "@/lib/venue-extraction";
+import { extractVenueFromUrl, extractVenueFromWebSearch } from "@/lib/venue-extraction";
 import { searchPlacesText } from "@/lib/google-places";
 import { slugify } from "@/lib/slugify";
 import { VENUE_CITY_LABELS, type VenueCategory, type VenueCity } from "@/types/venue";
@@ -134,6 +134,7 @@ async function main() {
   let created = 0;
   let updated = 0;
   let enriched = 0;
+  let webSearched = 0;
   let skipped = 0;
 
   for (const { place, city } of found.values()) {
@@ -144,10 +145,19 @@ async function main() {
     }
 
     let extraction: Awaited<ReturnType<typeof extractVenueFromUrl>> | null = null;
-    if (place.websiteUri && aiEnrichmentEnabled) {
+    let extractionSource: "ai_extracted" | "web_search" | null = null;
+
+    if (aiEnrichmentEnabled) {
       try {
-        extraction = await extractVenueFromUrl(place.websiteUri);
-        enriched += 1;
+        if (place.websiteUri) {
+          extraction = await extractVenueFromUrl(place.websiteUri);
+          extractionSource = "ai_extracted";
+          enriched += 1;
+        } else {
+          extraction = await extractVenueFromWebSearch(place.name, VENUE_CITY_LABELS[city], place.address);
+          extractionSource = "web_search";
+          webSearched += 1;
+        }
       } catch (err) {
         console.log(
           `  (enrichment failed for ${place.name}: ${err instanceof Error ? err.message : err})`
@@ -183,7 +193,7 @@ async function main() {
       phone: extraction?.phone || place.phone,
       website_url: place.websiteUri,
       description: extraction?.description ?? null,
-      source: extraction ? "ai_extracted" : "google_places",
+      source: extractionSource ?? "google_places",
       google_place_id: place.placeId,
       verification_status: "verified",
       last_verified_at: new Date().toISOString(),
@@ -216,7 +226,7 @@ async function main() {
   }
 
   console.log(
-    `\nDone. ${created} created, ${updated} updated, ${enriched} enriched, ${skipped} skipped.`
+    `\nDone. ${created} created, ${updated} updated, ${enriched} enriched (own website), ${webSearched} enriched (web search), ${skipped} skipped.`
   );
 }
 

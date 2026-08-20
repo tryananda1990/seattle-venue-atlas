@@ -58,11 +58,11 @@ export const VenueExtractionSchema = z.object({
 
 export type VenueExtraction = z.infer<typeof VenueExtractionSchema>;
 
-const EXTRACTION_SYSTEM_PROMPT = `You extract structured venue-rental information from a performance/event venue's website text, for an admin who will review every field before publishing.
+const EXTRACTION_SYSTEM_PROMPT = `You extract structured venue-rental information from text about a performance/event venue — either its own website, or web search results about it. Facts are published to a public directory without further human review, so accuracy matters.
 
-Only report what the page text actually states. If a field isn't mentioned, set it to null — never guess or estimate.
+Only report what the source text actually states. If a field isn't mentioned, set it to null — never guess, estimate, or fill in from general knowledge of the venue or venues like it.
 
-You may receive text from more than one page of the same website, each preceded by a "--- Page: <url> ---" marker. Combine information across all of them.
+You may receive text from more than one page or source, each preceded by a "--- Page: <url> ---" or "--- Search result: <url> ---" marker. Combine information across all of them, but only if you're confident they're describing the same specific venue — discard anything that looks like it's about a different venue with a similar name or in a different location.
 
 Return strictly the JSON object described by the schema, with these exact keys: name, category_guess, city_guess, address, capacity_min, capacity_max, sound_system, sound_system_notes, rental_fee_amount, rental_fee_unit, rental_fee_notes, production_notes, amenities, reservation_url, contact_email, contact_form_url, phone, description.
 
@@ -162,6 +162,36 @@ function findCandidateSubpageUrls(
     .map((c) => c.url);
 }
 
+async function runExtraction(userContent: string, model: string): Promise<VenueExtraction> {
+  const client = createOpenRouterClient();
+
+  const completion = await client.chat.completions.create({
+    model,
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
+      { role: "user", content: userContent },
+    ],
+  });
+
+  const raw = completion.choices[0]?.message?.content;
+  if (!raw) throw new Error("The model returned an empty response.");
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(stripCodeFence(raw));
+  } catch {
+    throw new Error("The model didn't return valid JSON.");
+  }
+
+  const result = VenueExtractionSchema.safeParse(parsedJson);
+  if (!result.success) {
+    throw new Error(`The model's response didn't match the expected shape: ${result.error.message}`);
+  }
+
+  return result.data;
+}
+
 export async function extractVenueFromUrl(url: string): Promise<VenueExtraction> {
   const mainHtml = await fetchHtml(url);
   const main$ = cheerio.load(mainHtml);
@@ -182,32 +212,30 @@ export async function extractVenueFromUrl(url: string): Promise<VenueExtraction>
   const combinedText = pages.map((p) => `--- Page: ${p.url} ---\n${p.text}`).join("\n\n");
   if (!pages.some((p) => p.text)) throw new Error("The page had no readable text content.");
 
-  const client = createOpenRouterClient();
   const model = process.env.OPENROUTER_MODEL || "anthropic/claude-haiku-4.5";
+  return runExtraction(combinedText, model);
+}
 
-  const completion = await client.chat.completions.create({
-    model,
-    response_format: { type: "json_object" },
-    messages: [
-      { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
-      { role: "user", content: combinedText },
-    ],
-  });
+/**
+ * For venues with no website at all (per PRD §6, and the discovery/
+ * enrichment split): searches the web via OpenRouter's web-search plugin
+ * (the ":online" model suffix) instead of reading a page we already fetched
+ * — the model issues its own search and reasons over the results directly.
+ */
+export async function extractVenueFromWebSearch(
+  name: string,
+  city: string,
+  address: string | null
+): Promise<VenueExtraction> {
+  const userContent = `Search for information about this specific venue and report what you find:
 
-  const raw = completion.choices[0]?.message?.content;
-  if (!raw) throw new Error("The model returned an empty response.");
+Venue name: ${name}
+City: ${city}, WA
+${address ? `Address: ${address}` : ""}
 
-  let parsedJson: unknown;
-  try {
-    parsedJson = JSON.parse(stripCodeFence(raw));
-  } catch {
-    throw new Error("The model didn't return valid JSON.");
-  }
+Only report facts you're confident are about this exact venue at this location — not a different venue with a similar name, and not a different branch or location. If you can't confirm a fact belongs to this specific venue, leave that field null.`;
 
-  const result = VenueExtractionSchema.safeParse(parsedJson);
-  if (!result.success) {
-    throw new Error(`The model's response didn't match the expected shape: ${result.error.message}`);
-  }
-
-  return result.data;
+  const baseModel = process.env.OPENROUTER_MODEL || "anthropic/claude-haiku-4.5";
+  const model = baseModel.endsWith(":online") ? baseModel : `${baseModel}:online`;
+  return runExtraction(userContent, model);
 }
