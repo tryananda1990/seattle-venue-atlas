@@ -100,6 +100,13 @@ async function main() {
     process.exit(1);
   }
 
+  const aiEnrichmentEnabled = Boolean(process.env.OPENROUTER_API_KEY);
+  if (!aiEnrichmentEnabled) {
+    console.log(
+      "OPENROUTER_API_KEY is not set — AI enrichment is paused for this run. Venues will publish with Places data only (name, address, phone, coordinates).\n"
+    );
+  }
+
   const supabase = createAdminClient();
 
   const found = new Map<string, { place: Awaited<ReturnType<typeof searchPlacesText>>[number]; city: VenueCity }>();
@@ -137,7 +144,7 @@ async function main() {
     }
 
     let extraction: Awaited<ReturnType<typeof extractVenueFromUrl>> | null = null;
-    if (place.websiteUri) {
+    if (place.websiteUri && aiEnrichmentEnabled) {
       try {
         extraction = await extractVenueFromUrl(place.websiteUri);
         enriched += 1;

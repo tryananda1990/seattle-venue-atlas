@@ -10,6 +10,12 @@ import OpenAI from "openai";
  * (admin import tool, PRD §6.2); never expose OPENROUTER_API_KEY to the browser.
  */
 export function createOpenRouterClient() {
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error(
+      "AI enrichment is paused — OPENROUTER_API_KEY isn't set. Add it back to .env.local (and Vercel) to resume."
+    );
+  }
+
   return new OpenAI({
     apiKey: process.env.OPENROUTER_API_KEY!,
     baseURL: "https://openrouter.ai/api/v1",
