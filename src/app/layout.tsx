@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -24,7 +25,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <footer className="border-t border-line px-6 py-4 text-center">
+          <Link href="/admin" className="text-xs text-muted hover:text-accent">
+            Admin
+          </Link>
+        </footer>
+      </body>
     </html>
   );
 }
