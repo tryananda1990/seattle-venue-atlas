@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FilterBar } from "@/components/FilterBar";
 import { VenueRow } from "@/components/VenueRow";
-import { VenueMap } from "@/components/VenueMap";
+import { VenueMapLoader } from "@/components/VenueMapLoader";
 import { parseFilters } from "@/lib/parse-filters";
 import { getVenues } from "@/lib/venues";
 
@@ -74,7 +74,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             No venues match those filters yet.
           </p>
         ) : view === "map" ? (
-          <VenueMap venues={venues} />
+          <VenueMapLoader venues={venues} />
         ) : (
           <div className="flex flex-col gap-3">
             {venues.map((venue) => (
