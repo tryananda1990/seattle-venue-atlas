@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "discover": "tsx scripts/discover.ts",
-    "create-admin": "tsx scripts/create-admin-user.ts"
+    "create-admin": "tsx scripts/create-admin-user.ts",
+    "reset-admin-password": "tsx scripts/reset-admin-password.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

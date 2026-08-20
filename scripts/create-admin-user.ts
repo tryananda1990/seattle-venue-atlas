@@ -6,14 +6,13 @@
  * Generates a random password, creates the user via the secret-key admin
  * client (bypasses email confirmation — there's no email server involved,
  * this is a single-admin internal tool), and prints the password once.
- * Change it afterward from the Supabase dashboard if you'd rather pick your
- * own (Authentication -> Users -> select user -> Reset password).
+ * To change it later, use `npm run reset-admin-password -- <email>`.
  */
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
-import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { generateStrongPassword } from "@/lib/generate-password";
 
 async function main() {
   const email = process.argv[2];
@@ -22,7 +21,7 @@ async function main() {
     process.exit(1);
   }
 
-  const password = crypto.randomBytes(18).toString("base64url");
+  const password = generateStrongPassword();
   const supabase = createAdminClient();
 
   const { data, error } = await supabase.auth.admin.createUser({
