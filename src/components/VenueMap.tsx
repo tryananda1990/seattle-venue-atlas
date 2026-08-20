@@ -117,7 +117,7 @@ export function VenueMap({ venues }: { venues: MappableVenue[] }) {
           aren&apos;t shown here.
         </p>
       )}
-      <div className="rounded-lg overflow-hidden border border-line h-[70vh]">
+      <div className="rounded-lg overflow-hidden border border-line" style={{ height: "70vh" }}>
         <Map
           ref={mapRef}
           mapLib={mapboxgl}

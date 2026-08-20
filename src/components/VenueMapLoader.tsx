@@ -6,7 +6,10 @@ import type { Venue } from "@/types/venue";
 const VenueMap = dynamic(() => import("./VenueMap").then((m) => m.VenueMap), {
   ssr: false,
   loading: () => (
-    <div className="rounded-lg overflow-hidden border border-line h-[70vh] flex items-center justify-center">
+    <div
+      className="rounded-lg overflow-hidden border border-line flex items-center justify-center"
+      style={{ height: "70vh" }}
+    >
       <p className="text-muted text-sm">Loading map…</p>
     </div>
   ),
