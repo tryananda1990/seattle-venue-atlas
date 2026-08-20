@@ -46,6 +46,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           Auditoriums, theatres, and halls across Greater Seattle.
         </p>
         <FilterBar filters={filters} view={view} />
+        <Link
+          href="/admin"
+          className="block mt-6 pt-4 border-t border-line text-sm text-muted hover:text-accent"
+        >
+          Admin
+        </Link>
       </aside>
 
       <section>
