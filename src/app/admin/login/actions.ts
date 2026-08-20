@@ -1,39 +1,25 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  ADMIN_SESSION_COOKIE,
-  SESSION_TTL_SECONDS,
-  createSessionToken,
-  verifyPin,
-} from "@/lib/admin-auth";
+import { createClient } from "@/lib/supabase/server";
 
 export async function login(formData: FormData) {
-  const pin = String(formData.get("pin") ?? "");
+  const email = String(formData.get("email") ?? "");
+  const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "/admin");
 
-  // Small fixed delay to blunt automated PIN-guessing.
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (!verifyPin(pin)) {
+  if (error) {
     redirect(`/admin/login?error=1&next=${encodeURIComponent(next)}`);
   }
-
-  const cookieStore = await cookies();
-  cookieStore.set(ADMIN_SESSION_COOKIE, createSessionToken(), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/admin",
-    maxAge: SESSION_TTL_SECONDS,
-  });
 
   redirect(next || "/admin");
 }
 
 export async function logout() {
-  const cookieStore = await cookies();
-  cookieStore.delete({ name: ADMIN_SESSION_COOKIE, path: "/admin" });
+  const supabase = await createClient();
+  await supabase.auth.signOut();
   redirect("/admin/login");
 }
