@@ -12,6 +12,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin/import" className="text-muted hover:text-accent">
             Import venue
           </Link>
+          <Link href="/admin/account" className="text-muted hover:text-accent">
+            Change password
+          </Link>
           <Link href="/" className="text-muted hover:text-accent">
             View site
           </Link>
