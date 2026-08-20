@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function setNewPassword(formData: FormData) {
   const password = String(formData.get("password") ?? "");
@@ -12,11 +13,22 @@ export async function setNewPassword(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // No current_password here: this only runs inside a recovery session
-  // established by clicking the emailed link, which is the whole point of
-  // "forgot password" — the user doesn't know their current one.
-  const { error } = await supabase.auth.updateUser({ password });
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  // Set via the admin API, not the session-based updateUser(): this project
+  // requires current_password on updateUser() even during a recovery
+  // session, which would make "forgot password" impossible by definition
+  // (not knowing the old password is the whole premise). The valid recovery
+  // session — proven by getUser() succeeding, established by clicking the
+  // emailed link — is the identity check here instead.
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(user.id, { password });
 
   if (error) {
     redirect(`/admin/reset-password?error=${encodeURIComponent(error.message)}`);
