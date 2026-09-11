@@ -47,6 +47,12 @@ export async function getVenues(filters: VenueFilters): Promise<Venue[]> {
   if (filters.publishedPricingOnly) query = query.not("rental_fee_amount", "is", null);
   if (filters.maxFee) query = query.lte("rental_fee_amount", filters.maxFee);
 
+  // PostgREST caps unpaginated results at 1000 rows by default. The venue
+  // count crossed that during a discovery sweep and silently truncated the
+  // list with no error and no indication — explicit range avoids relying on
+  // a project-level dashboard setting that isn't version-controlled.
+  query = query.range(0, 4999);
+
   const { data, error } = await query;
   if (error) throw new Error(`Failed to load venues: ${error.message}`);
   return (data ?? []) as Venue[];
